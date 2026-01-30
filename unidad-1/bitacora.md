@@ -42,6 +42,9 @@ createCanvas(400,400);
 
 ## Actividad 4
 
+- Paso 1
+
+
 ## Actividad 5
 
 <img width="1392" height="944" alt="image" src="https://github.com/user-attachments/assets/d13758b5-01d0-4a37-bc70-a0bd48dd2e1d" />
