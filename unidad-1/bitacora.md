@@ -28,9 +28,71 @@ createCanvas(400,400);
 
 <img width="1026" height="814" alt="image" src="https://github.com/user-attachments/assets/58ec88c8-c20b-4ef7-aef6-8235521fb13c" />
 
-<img width="472" height="568" alt="image" src="https://github.com/user-attachments/assets/4445222e-1078-4c74-af38-eaed72d4346e" />
+``` js
+// Importa todas las funciones y objetos del módulo microbit
+// Permite usar botones, pantalla LED, acelerómetro, UART, etc.
+from microbit import *
 
-<img width="1919" height="942" alt="image" src="https://github.com/user-attachments/assets/eda6876b-d548-4562-89ce-3901b5f0707c" />
+// Inicializa la comunicación serial (UART)
+// 115200 es la velocidad de transmisión en bits por segundo
+uart.init(baudrate=115200)
+
+// Muestra la imagen de una mariposa en la pantalla LED del micro:bit
+display.show(Image.BUTTERFLY)
+
+// Bucle infinito: el programa se ejecuta continuamente
+while True:
+
+    // Verifica si el botón A está presionado
+    if button_a.is_pressed():
+
+        // Envía el carácter 'A' por UART
+        uart.write('A')
+
+        // Espera 500 milisegundos para evitar múltiples envíos
+        sleep(500)
+
+    // Verifica si el botón B está presionado
+    if button_b.is_pressed():
+
+        // Envía el carácter 'B' por UART
+        uart.write('B')
+
+        // Espera 500 milisegundos
+        sleep(500)
+
+    // Verifica si se detectó el gesto de agitar el micro:bit
+    if accelerometer.was_gesture('shake'):
+
+        // Envía el carácter 'C' por UART
+        uart.write('C')
+
+        // Espera 500 milisegundos
+        sleep(500)
+
+    // Verifica si hay datos disponibles en el buffer UART
+    if uart.any():
+
+        // Lee 1 byte recibido por UART
+        data = uart.read(1)
+
+        // Comprueba que se haya recibido un dato válido
+        if data:
+
+            // Compara el byte recibido con el carácter 'h'
+            // ord('h') convierte el carácter a su valor ASCII
+            if data[0] == ord('h'):
+
+                // Muestra un corazón en la pantalla LED
+                display.show(Image.HEART)
+
+                // Mantiene la imagen durante 500 milisegundos
+                sleep(500)
+
+                // Cambia la imagen a una cara feliz
+                display.show(Image.HAPPY)
+
+```
 
 <img width="1379" height="922" alt="image" src="https://github.com/user-attachments/assets/31f7e9b9-d601-4640-b313-0c5178c3c43e" />
 
@@ -40,7 +102,132 @@ createCanvas(400,400);
 
 <img width="1919" height="784" alt="image" src="https://github.com/user-attachments/assets/94d9f358-9432-43dd-b121-809d227f620f" />
 
-## Actividad 4
+``` js
+// Variable para manejar la comunicación serial
+let port;
+
+// Botón para conectar y desconectar el micro:bit
+let connectBtn;
+
+// Función setup: se ejecuta una sola vez al iniciar el programa
+function setup() {
+
+    // Crea un lienzo de 400x400 píxeles
+    createCanvas(400, 400);
+
+    // Pinta el fondo de color gris claro
+    background(220);
+
+    // Crea el objeto de comunicación serial
+    port = createSerial();
+
+    // Crea el botón para conectar con el micro:bit
+    connectBtn = createButton('Connect to micro:bit');
+
+    // Posiciona el botón de conexión
+    connectBtn.position(80, 300);
+
+    // Asigna la función al evento de clic del botón
+    connectBtn.mousePressed(connectBtnClick);
+
+    // Crea un botón para enviar un mensaje al micro:bit
+    let sendBtn = createButton('Send Love');
+
+    // Posiciona el botón de envío
+    sendBtn.position(220, 300);
+
+    // Asigna la función que se ejecuta al presionar el botón
+    sendBtn.mousePressed(sendBtnClick);
+
+    // Establece el color de relleno a blanco
+    fill('white');
+
+    // Dibuja un círculo en el centro del canvas
+    ellipse(width / 2, height / 2, 100, 100);
+}
+
+// Función draw: se ejecuta continuamente
+function draw() {
+
+    // Verifica si hay datos disponibles en el puerto serial
+    if (port.availableBytes() > 0) {
+
+        // Lee 1 byte de datos del puerto serial
+        let dataRx = port.read(1);
+
+        // Si el dato recibido es 'A'
+        if (dataRx == 'A') {
+
+            // Cambia el color del círculo a rojo
+            fill('red');
+        }
+
+        // Si el dato recibido es 'B'
+        else if (dataRx == 'B') {
+
+            // Cambia el color del círculo a amarillo
+            fill('yellow');
+        }
+
+        // Si se recibe cualquier otro valor
+        else {
+
+            // Cambia el color del círculo a verde
+            fill('green');
+        }
+
+        // Limpia el fondo
+        background(220);
+
+        // Dibuja el círculo en el centro del canvas
+        ellipse(width / 2, height / 2, 100, 100);
+
+        // Cambia el color del texto a negro
+        fill('black');
+
+        // Muestra el carácter recibido en el centro del canvas
+        text(dataRx, width / 2, height / 2);
+    }
+
+    // Actualiza el texto del botón según el estado del puerto
+    if (!port.opened()) {
+
+        // Si no está conectado, muestra "Connect to micro:bit"
+        connectBtn.html('Connect to micro:bit');
+    }
+    else {
+
+        // Si está conectado, muestra "Disconnect"
+        connectBtn.html('Disconnect');
+    }
+}
+
+// Función que se ejecuta al presionar el botón de conexión
+function connectBtnClick() {
+
+    // Si el puerto no está abierto
+    if (!port.opened()) {
+
+        // Abre la conexión serial con el micro:bit
+        port.open('MicroPython', 115200);
+    } 
+    else {
+
+        // Si el puerto está abierto, lo cierra
+        port.close();
+    }
+}
+
+// Función que se ejecuta al presionar el botón "Send Love"
+function sendBtnClick() {
+
+    // Envía el carácter 'h' al micro:bit por el puerto serial
+    port.write('h');
+}
+
+```
+
+### Actividad 4
 
 - Paso 1
 
@@ -85,7 +272,7 @@ Aplicación en p5.js - Configuración inicial
 Vas a crear un par de variables globales (estas las creas por fuera de cualquier función). Al ser globales, podrás acceder a ellas desde cualquier parte del código. Estas variables te servirán para almacenar una referencia al objeto que te permitirá manipular el puerto serial y la otra variable te servirá para guardar una referencia al objeto que representa el botón con el cual podrías conectar y desconectar el micro:bit de la aplicación.
 Observa la función connectBtnClick(). Esta función se ejecuta cuando el usuario hace click en el botón de conexión. A esto se le llama un “event handler” o manejador de eventos.
 
-```
+``` js
 let port;
 let connectBtn;
 
@@ -127,7 +314,7 @@ Aplicación en p5.js - Dibujar en cada frame
 
 Cuando se presiona el botón A del micro:bit, se envía un mensaje por el puerto serial, este mensaje se lee en un frame. En ese frame se le cambia el color al cuadrado. Pero, al siguiente frame, se lee el puerto serial y no hay mensajes disponibles, por lo que el cuadrado vuelve a ser verde.
 
-```
+``` js
 from microbit import *
 
 uart.init(baudrate=115200)
@@ -141,10 +328,10 @@ while True:
 
     sleep(100)
 ```
-<img width="2752" height="1809" alt="image" src="https://github.com/user-attachments/assets/706f00f7-6c3f-4e32-9296-a087b245642f" 
+<img width="1919" height="943" alt="image" src="https://github.com/user-attachments/assets/3aece9ba-b3cb-4006-bd35-a9f47211d122" />
 
-```
-  let port;
+``` js
+   let port;
   let connectBtn;
   let connectionInitialized = false;
 
@@ -195,13 +382,13 @@ while True:
 ```
 <img width="2752" height="1825" alt="image" src="https://github.com/user-attachments/assets/086e3730-8781-404f-a762-8a79a01fca34" />
 
-## Actividad 5
+### Actividad 5
 
 <img width="1392" height="944" alt="image" src="https://github.com/user-attachments/assets/d13758b5-01d0-4a37-bc70-a0bd48dd2e1d" />
 
 <img width="1030" height="819" alt="image" src="https://github.com/user-attachments/assets/dc1fc950-d18d-4cb7-9ef1-0d34d8d2327b" />
 
-```
+``` js
 let port; // Variable que maneja la comunicación serial
 let connectBtn; // Botón para conectar y desconectar la micro:bit
 let x; // Posición horizontal del círculo
@@ -269,7 +456,7 @@ function connectBtnClick()
     } 
 }
 ```
-```
+``` js
 from microbit import *
 
 uart.init(baudrate=115200)
@@ -285,13 +472,151 @@ while True:
         sleep(100)
 ```
 
-## Actividad 6
+### Actividad 6
+
+``` js
+// Importa todas las funciones y objetos del módulo microbit
+// Permite usar botones, UART, sleep, etc.
+from microbit import *
+
+// Inicializa la comunicación UART (serial)
+// 115200 es la velocidad de transmisión en bits por segundo
+uart.init(baudrate=115200)
+
+// Bucle infinito: el programa se ejecuta continuamente
+while True:
+
+    // Verifica si el botón A está presionado
+    if button_a.is_pressed():
+        
+        // Si el botón A está presionado, envía el carácter 'A' por UART
+        uart.write('A')
+    
+    else:
+        // Si el botón A NO está presionado, envía el carácter 'N' por UART
+        uart.write('N')
+
+    // Detiene la ejecución durante 100 milisegundos
+    // Evita enviar datos demasiado rápido
+    sleep(100)
+
+```
+
+``` js
+// Variable para manejar el puerto serial
+let port;
+
+// Botón para conectar o desconectar el micro:bit
+let connectBtn;
+
+// Indica si la conexión ya fue inicializada
+let connectionInitialized = false;
+
+// Función setup: se ejecuta una sola vez al iniciar el programa
+function setup() {
+
+  // Crea un lienzo de 400x400 píxeles
+  createCanvas(400, 400);
+
+  // Pinta el fondo de color gris claro
+  background(220);
+
+  // Crea el objeto de comunicación serial
+  port = createSerial();
+
+  // Crea un botón para conectarse al micro:bit
+  connectBtn = createButton("Connect to micro:bit");
+
+  // Posiciona el botón en la pantalla
+  connectBtn.position(80, 300);
+
+  // Asigna la función que se ejecutará al presionar el botón
+  connectBtn.mousePressed(connectBtnClick);
+}
+
+// Función draw: se ejecuta continuamente (loop)
+function draw() {
+
+  // Limpia el fondo en cada frame
+  background(220);
+
+  // Si el puerto está abierto y aún no se ha inicializado la conexión
+  if (port.opened() && !connectionInitialized) {
+
+    // Limpia el buffer del puerto serial
+    port.clear();
+
+    // Marca la conexión como inicializada
+    connectionInitialized = true;
+  }
+
+  // Verifica si hay datos disponibles en el puerto serial
+  if (port.availableBytes() > 0) {
+
+    // Lee 1 byte de datos del puerto serial
+    let dataRx = port.read(1);
+
+    // Si el dato recibido es "A"
+    if (dataRx == "A") {
+
+      // Cambia el color de relleno a rojo
+      fill("red");
+
+    // Si el dato recibido es "N"
+    } else if (dataRx == "N") {
+
+      // Cambia el color de relleno a verde
+      fill("green");
+    }
+  }
+
+  // Establece el modo de dibujo del rectángulo desde el centro
+  rectMode(CENTER);
+
+  // Dibuja un rectángulo centrado en el canvas
+  rect(width / 2, height / 2, 50, 50);
+
+  // Cambia el texto del botón según el estado del puerto
+  if (!port.opened()) {
+
+    // Si no está conectado, muestra "Connect to micro:bit"
+    connectBtn.html("Connect to micro:bit");
+
+  } else {
+
+    // Si está conectado, muestra "Disconnect"
+    connectBtn.html("Disconnect");
+  }
+}
+
+// Función que se ejecuta al presionar el botón
+function connectBtnClick() {
+
+  // Si el puerto NO está abierto
+  if (!port.opened()) {
+
+    // Abre el puerto serial con el micro:bit usando baudrate 115200
+    port.open("MicroPython", 115200);
+
+    // Reinicia la inicialización de la conexión
+    connectionInitialized = false;
+
+  } else {
+
+    // Si el puerto está abierto, lo cierra
+    port.close();
+  }
+}
+
+```
+
 
 ## Bitácora de aplicación 
 
 
 
 ## Bitácora de reflexión
+
 
 
 
