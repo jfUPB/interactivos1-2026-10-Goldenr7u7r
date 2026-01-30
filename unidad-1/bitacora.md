@@ -44,6 +44,156 @@ createCanvas(400,400);
 
 - Paso 1
 
+Creación del programa del micro:bit
+
+Vamos a crear un programa en el micro:bit que tenga un input (un botón) y un output (enviar un mensaje por serial) que indique que se ha presionado el botón.
+Lo primero que debes hacer es abrir el editor de micro:bit. Luego, importa de la biblioteca microbit todas las funciones que necesitas para interactuar con el micro:bit.
+
+<img width="2752" height="1808" alt="image" src="https://github.com/user-attachments/assets/a0713738-e301-493e-b675-05cc7dce3b05" />
+
+- Paso 2
+
+Lectura del botón
+
+Ahora vamos a leer el estado del botón A del micro:bit. Para ello, utilizaremos un bucle que se ejecutará continuamente y verificará si el botón A ha sido presionado.
+
+![image](https://github.com/user-attachments/assets/19bc162a-146d-4d0c-9d6a-82229a313781)
+
+Observa que utilizamos button_a.was_pressed() para detectar si el botón ha sido presionado. También podrías usar button_a.is_pressed() si quieres saber si el botón está presionado en ese momento, pero was_pressed() es más adecuado para detectar eventos únicos como un clic. Si usas is_pressed(), el programa podría enviar múltiples mensajes si el botón se mantiene presionado.
+
+- Paso 3
+
+Lectura del botón y envío del mensaje
+
+Ahora que sabemos cuándo se presiona el botón, vamos a enviar un mensaje por el puerto serial del micro:bit. Esto nos permitirá recibir el mensaje en p5.js.
+Nota que debes inicializar la comunicación serial con uart.init(baudrate=115200) antes de enviar mensajes. El baudrate es la velocidad de transmisión de datos, y 115200 es una velocidad comúnmente utilizada para la comunicación serial. Finalmente, utilizamos uart.write('A') para enviar el mensaje ‘A’ cuando se presiona el botón A.
+
+<img width="2752" height="1806" alt="image" src="https://github.com/user-attachments/assets/d866867f-1d62-4b54-9db2-5f7194aceb11" />
+
+- Paso 4
+
+Aplicación en p5.js - Biblioteca de conexión serial
+
+Lo primero que debes hacer es añadir la biblioteca que te permite conectar el micro:bit con p5.js. Recuerda que esto lo haces en el archivo index.html de tu proyecto p5.js.
+
+<img width="2752" height="1808" alt="image" src="https://github.com/user-attachments/assets/124c0ad7-aff7-4524-a833-0806ddaae039" />
+
+- Paso 5
+
+Aplicación en p5.js - Configuración inicial
+
+Vas a crear un par de variables globales (estas las creas por fuera de cualquier función). Al ser globales, podrás acceder a ellas desde cualquier parte del código. Estas variables te servirán para almacenar una referencia al objeto que te permitirá manipular el puerto serial y la otra variable te servirá para guardar una referencia al objeto que representa el botón con el cual podrías conectar y desconectar el micro:bit de la aplicación.
+Observa la función connectBtnClick(). Esta función se ejecuta cuando el usuario hace click en el botón de conexión. A esto se le llama un “event handler” o manejador de eventos.
+
+```
+let port;
+let connectBtn;
+
+function setup() {
+    createCanvas(400, 400);
+    background(220);
+    port = createSerial();
+    connectBtn = createButton('Connect to micro:bit');
+    connectBtn.position(80, 300);
+    connectBtn.mousePressed(connectBtnClick);
+}
+
+function draw() {
+}
+
+function connectBtnClick() {
+    if (!port.opened()) {
+        port.open('MicroPython', 115200);
+    } else {
+        port.close();
+    }
+}
+```
+
+<img width="2752" height="1810" alt="image" src="https://github.com/user-attachments/assets/0d208a6f-ce41-4e14-b137-c0153cbb6832" />
+
+- Paso 6
+
+Aplicación en p5.js - Dibujar en cada frame
+
+En draw() vas a dibujar un cuadrado en la pantalla todo el tiempo, pero tendrás que decidir en cada frame qué color debe tener. Entonces, antes de dibujarlo vas a leer el puerto serial y ver si hay algún mensaje disponible. Si hay un mensaje, lo vas a leer (debes siempre consumir el mensaje para que no se acumule) y cambiarás el color a rojo. Si no hay mensaje, el cuadrado será de color verde.
+Antes de terminar el frame vas a actualizar el estado del botón para que refleje el estado de conexión del micro:bit.
+
+<img width="2752" height="1806" alt="image" src="https://github.com/user-attachments/assets/6a0c03ad-a2d2-4559-9c15-a98a812af5f3" />
+
+- Paso 7
+
+Aplicación en p5.js - Dibujar en cada frame
+
+Cuando se presiona el botón A del micro:bit, se envía un mensaje por el puerto serial, este mensaje se lee en un frame. En ese frame se le cambia el color al cuadrado. Pero, al siguiente frame, se lee el puerto serial y no hay mensajes disponibles, por lo que el cuadrado vuelve a ser verde.
+
+```
+from microbit import *
+
+uart.init(baudrate=115200)
+
+while True:
+
+    if button_a.is_pressed():
+        uart.write('A')
+    else:
+        uart.write('N')
+
+    sleep(100)
+```
+<img width="2752" height="1809" alt="image" src="https://github.com/user-attachments/assets/706f00f7-6c3f-4e32-9296-a087b245642f" 
+
+```
+  let port;
+  let connectBtn;
+  let connectionInitialized = false;
+
+  function setup() {
+    createCanvas(400, 400);
+    background(220);
+    port = createSerial();
+    connectBtn = createButton("Connect to micro:bit");
+    connectBtn.position(80, 300);
+    connectBtn.mousePressed(connectBtnClick);
+  }
+
+  function draw() {
+    background(220);
+
+    if (port.opened() && !connectionInitialized) {
+      port.clear();
+      connectionInitialized = true;
+    }
+
+    if (port.availableBytes() > 0) {
+      let dataRx = port.read(1);
+      if (dataRx == "A") {
+        fill("red");
+      } else if (dataRx == "N") {
+        fill("green");
+      }
+    }
+
+    rectMode(CENTER);
+    rect(width / 2, height / 2, 50, 50);
+
+    if (!port.opened()) {
+      connectBtn.html("Connect to micro:bit");
+    } else {
+      connectBtn.html("Disconnect");
+    }
+  }
+
+  function connectBtnClick() {
+    if (!port.opened()) {
+      port.open("MicroPython", 115200);
+      connectionInitialized = false;
+    } else {
+      port.close();
+    }
+  }
+```
+<img width="2752" height="1825" alt="image" src="https://github.com/user-attachments/assets/086e3730-8781-404f-a762-8a79a01fca34" />
 
 ## Actividad 5
 
@@ -134,11 +284,15 @@ while True:
         uart.write('B')
         sleep(100)
 ```
+
+## Actividad 6
+
 ## Bitácora de aplicación 
 
 
 
 ## Bitácora de reflexión
+
 
 
 
