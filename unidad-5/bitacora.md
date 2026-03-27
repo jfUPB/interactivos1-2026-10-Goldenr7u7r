@@ -446,5 +446,153 @@ main().catch((e) => {
   process.exit(1);
 }); 
 ```
+#### Actividad 02 (Adapter binario)
+
+**Predicción**
+
+Se esperaba que el nuevo firmware del micro:bit enviara datos en formato binario en lugar de texto ASCII, por lo que el adapter anterior no sería capaz de interpretarlos correctamente.
+
+Se predijo que sería necesario:
+
+- Acumular los datos en un buffer de bytes.
+  
+- Identificar el inicio de cada paquete mediante un byte de sincronización (`0xAA`).
+
+- Esperar hasta tener la longitud completa del paquete (8 bytes).
+
+- Validar la integridad de los datos usando un checksum.
+
+- Convertir los valores binarios a variables utilizables (`x`, `y`, `btnA`, `btnB`).
+
+**Ejecución**
+
+Se creó un nuevo archivo llamado:
+
+adapters/MicrobitBinaryAdapter.js
+
+Este adapter:
+
+- Hereda de `BaseAdapter`.
+
+- Abre el puerto serial a 115200 baudios.
+
+- Acumula los bytes entrantes en un buffer (`Buffer` de Node.js).
+
+- Implementa lógica de framing usando el header `0xAA`.
+
+- Verifica el checksum de cada paquete.
+
+- Emite los datos con el mismo formato que el adapter ASCII:
+
+this.onData?.({ x, y, btnA, btnB });
+
+También se modificó `bridgeServer.js` para registrar el nuevo adapter en el caso  `"microbitbinary"`.
+
+**Problemas encontrados**
+
+1. **No se observaban datos en consola**
+
+Inicialmente, el sistema mostraba que el puerto serial se abría correctamente, pero no se veían datos.
+
+Causa:
+
+No había evidencia de que el método `_onChunk` estuviera procesando los datos.
+
+Solución:
+
+Se agregaron logs dentro de `_onChunk` para verificar la llegada de datos desde el micro:bit.
+
+2. **Datos incompletos**
+
+Los datos del puerto serial no siempre llegan en paquetes completos.
+
+Causa:
+
+La comunicación serial envía fragmentos de datos.
+
+Solución:
+
+Se implementó un buffer acumulativo:
+
+this.buf = Buffer.concat([this.buf, chunk]);
+
+Y se procesan los datos solo cuando hay al menos 8 bytes disponibles.
+
+3. **Desincronización de paquetes**
+
+El buffer podía contener datos que no empezaban en el header correcto.
+
+Causa:
+
+Lectura parcial o ruido en la transmisión.
+
+Solución:
+
+Se buscó el byte de inicio `0xAA` y se descartaron los bytes anteriores para re-sincronizar el stream.
+
+4. **Validación de checksum**
+
+Era necesario garantizar que los datos no estuvieran corruptos.
+
+Solución:
+
+Se implementó la validación del checksum como:
+
+(suma de bytes 1 a 6) % 256
+
+Si el checksum no coincide, la trama se descarta y se registra una advertencia en consola.
+
+**Observación**
+
+Después de implementar el adapter, el sistema logró:
+
+- Conectarse correctamente al micro:bit.
+
+- Recibir datos binarios.
+
+- Interpretar correctamente los valores del acelerómetro y los botones.
+
+- Enviar los datos al sistema sin modificar otros componentes.
+
+Ejemplo observado en consola:
+
+[ADAPTER] Device Connected: serial open COM12 @115200
+Paquete válido: { x: 120, y: -300, btnA: false, btnB: true }
+
+También se observaron mensajes de error cuando el checksum no coincidía:
+
+Bad checksum, discarding frame
+
+Esto confirma que el sistema detecta y descarta correctamente datos corruptos.
+
+**Resultado**
+
+El sistema funciona correctamente con el nuevo protocolo binario sin necesidad de modificar la arquitectura existente.
+
+El nuevo adapter:
+
+- Mantiene el mismo contrato de salida.
+
+- Es compatible con el resto del sistema sin cambios.
+
+- Maneja correctamente errores y desincronización.
+
+**Reflexión**
+
+El cambio de protocolo de ASCII a binario no requirió modificar todo el sistema, sino únicamente crear un nuevo adapter siguiendo la misma interfaz.
+
+Esto demuestra la importancia de una arquitectura basada en adaptadores, ya que permite extender el sistema para soportar nuevos formatos sin afectar los demás componentes.
+
+**Evidencia**
+
+<img width="901" height="526" alt="image" src="https://github.com/user-attachments/assets/82c66f38-8e20-4f09-be4a-b5acc9f6036a" />
+
+<img width="782" height="476" alt="image" src="https://github.com/user-attachments/assets/67fcd32c-5813-4aea-9a9b-2aa6a0cdc0bc" />
+
+<img width="1873" height="1032" alt="image" src="https://github.com/user-attachments/assets/1f256be2-9b24-428a-975c-43c696e17e87" />
+
+<img width="1862" height="1027" alt="image" src="https://github.com/user-attachments/assets/86074e0a-a500-42c5-9882-e070f47bfd35" />
+
+<img width="1862" height="1025" alt="image" src="https://github.com/user-attachments/assets/c1813686-bc06-4a2c-a4d7-6da5fc51c65d" />
 
 ## Bitácora de reflexión
